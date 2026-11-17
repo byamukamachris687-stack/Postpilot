@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Settings — PostPilot{% endblock %}
+{% block content %}
+<h3 class="mb-3">Account</h3>
+<div class="card shadow-sm p-4 mb-4">
+  <p><strong>Email:</strong> {{ user.email }}</p>
+  <p><strong>Plan:</strong> {{ user.plan|capitalize }} ({{ plans[user.plan].posts }} posts/week, {{ plans[user.plan].brands }} brand(s))</p>
+  <a href="{{ url_for('pricing') }}" class="btn btn-primary">Upgrade plan</a>
+</div>
+<h4>Brands</h4>
+<ul class="list-group">
+  {% for b in brands %}
+  <li class="list-group-item d-flex justify-content-between">
+    <span>{{ b.name }} — {{ b.platforms }}</span>
+    <a href="{{ url_for('brands') }}" class="small">manage</a>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

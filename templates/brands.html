@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Brands — PostPilot{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Your brands</h3>
+  <a href="{{ url_for('onboarding') }}" class="btn btn-primary">+ New brand</a>
+</div>
+<div class="row g-3">
+  {% for b in brands %}
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5>{{ b.name }}</h5>
+        <p class="small text-muted mb-1">{{ b.industry }} · {{ b.platforms }}</p>
+        <p class="small mb-2">{{ b.audience }}</p>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('dashboard', brand_id=b.id) }}" class="btn btn-sm btn-primary">Open</a>
+          <a href="{{ url_for('generate', brand_id=b.id) }}" class="btn btn-sm btn-outline-primary">Generate</a>
+          <form method="POST" action="{{ url_for('delete_brand', bid=b.id) }}" onsubmit="return confirm('Delete brand and all its posts?')">
+            <button class="btn btn-sm btn-outline-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center text-muted py-5">No brands yet. <a href="{{ url_for('onboarding') }}">Create one</a>.</div>
+  {% endfor %}
+</div>
+{% endblock %}

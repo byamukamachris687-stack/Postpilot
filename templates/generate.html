@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Generate content — PostPilot{% endblock %}
+{% block content %}
+<h2 class="mb-3">Generate new content</h2>
+<form method="POST" class="card shadow-sm p-4">
+  <div class="mb-3">
+    <label class="form-label">Brand</label>
+    <select name="brand_id" class="form-select">
+      {% for b in brands %}<option value="{{ b.id }}" {% if brand and b.id==brand.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Platforms</label>
+    <div class="d-flex gap-3">
+      {% for pl in ['instagram','facebook','tiktok'] %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="platforms" value="{{ pl }}" id="p_{{ pl }}"
+          {% if brand and pl in (brand.platforms or '').split(',') %}checked{% endif %}>
+        <label class="form-check-label" for="p_{{ pl }}">{{ pl|capitalize }}</label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Number of posts</label>
+    <input type="number" name="n_posts" class="form-control" value="7" min="1" max="30">
+    <div class="form-text">You have {{ remaining }} posts left this week on the {{ user.plan }} plan.</div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Extra instructions (optional)</label>
+    <textarea name="extra" class="form-control" rows="3" placeholder="e.g. Focus on our summer sale, include a discount code SAVE20, avoid emojis."></textarea>
+  </div>
+  <button class="btn btn-primary btn-lg"><i class="bi bi-magic"></i> Generate</button>
+</form>
+
+<div class="mt-4">
+  <button class="btn btn-outline-secondary" onclick="getIdeas()">Get 10 content ideas (JSON)</button>
+  <pre id="ideas" class="mt-2 small"></pre>
+</div>
+
+<script>
+function getIdeas(){
+  const fd = new FormData();
+  fd.append('brand_id', document.querySelector('[name=brand_id]').value);
+  fetch('{{ url_for("ideas") }}', {method:'POST', body: fd})
+    .then(r=>r.json()).then(d=>{ document.getElementById('ideas').textContent = JSON.stringify(d.ideas, null, 2); });
+}
+</script>
+{% endblock %}

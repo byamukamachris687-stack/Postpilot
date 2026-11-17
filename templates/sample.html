@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Free sample — PostPilot{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h2 class="mb-2">Get 3 free posts for your business — in 30 seconds</h2>
+    <p class="text-muted">No signup. No credit card. See what AI can do for your brand.</p>
+
+    <form method="POST" class="card shadow-sm p-4 mb-4">
+      <div class="mb-3">
+        <label class="form-label">Business name *</label>
+        <input name="name" class="form-control" required placeholder="e.g. Joe's Pizza" value="{{ brand.name if brand else '' }}">
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">What do you do?</label>
+          <input name="industry" class="form-control" placeholder="e.g. Italian restaurant, fitness coach" value="{{ brand.industry if brand else '' }}">
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Who's your customer?</label>
+          <input name="audience" class="form-control" placeholder="e.g. families in Brooklyn" value="{{ brand.audience if brand else '' }}">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Brand voice</label>
+        <input name="tone" class="form-control" placeholder="e.g. warm, fun, local" value="{{ brand.tone if brand else '' }}">
+      </div>
+      <button class="btn btn-primary btn-lg"><i class="bi bi-magic"></i> Generate my 3 free posts</button>
+    </form>
+
+    {% if generated %}
+    <h4 class="mb-3">Here's what we'd post for {{ brand.name }} this week</h4>
+    <div class="row g-3">
+      {% for p in posts %}
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header d-flex justify-content-between">
+            <span class="badge bg-{{ 'danger' if p.platform=='tiktok' else ('primary' if p.platform=='instagram' else 'info') }}">{{ p.platform|capitalize }}</span>
+            <small class="text-muted">{{ p.best_time }}</small>
+          </div>
+          <div class="card-body">
+            {% if p.hook %}<p class="fw-semibold mb-1">🪝 {{ p.hook }}</p>{% endif %}
+            <p style="white-space:pre-wrap;">{{ p.caption }}</p>
+            {% if p.hashtags %}<p class="small text-primary mb-0">{{ p.hashtags }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="card bg-dark text-white mt-4">
+      <div class="card-body p-4">
+        <h5>Want a full month of this, done for you?</h5>
+        <p class="mb-2">We'll handle your Facebook, Instagram &amp; TikTok — 3-5 posts/week, on-brand, scheduled. $250/mo. No long contract.</p>
+        <a href="mailto:you@example.com?subject=PostPilot%20-%20{{ brand.name }}" class="btn btn-light">Email me to start</a>
+        <a href="{{ url_for('signup') }}" class="btn btn-outline-light ms-2">Or try the self-serve tool free</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

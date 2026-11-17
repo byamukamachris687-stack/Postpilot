@@ -1,0 +1,4 @@
+body { background: #f8f9fa; }
+.card { border-radius: 12px; }
+.display-4 { letter-spacing: -1px; }
+pre#ideas { background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #dee2e6; max-height: 400px; overflow: auto; }

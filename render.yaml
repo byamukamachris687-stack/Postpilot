@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: postpilot
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: STRIPE_PAYMENT_LINK
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.13.0"

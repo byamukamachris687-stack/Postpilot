@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Set up your brand — PostPilot{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h2 class="mb-3">Tell us about your business</h2>
+    <p class="text-muted">We'll use this to keep every post on-brand.</p>
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Business / brand name *</label>
+        <input name="name" class="form-control" required placeholder="e.g. Sunrise Bakery">
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Industry</label>
+          <input name="industry" class="form-control" placeholder="e.g. food & beverage, fitness, SaaS">
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Website (optional)</label>
+          <input name="website" class="form-control" placeholder="https://...">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Target audience</label>
+        <input name="audience" class="form-control" placeholder="e.g. busy moms aged 25-40 who want quick healthy meals">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Brand voice / tone</label>
+        <input name="tone" class="form-control" placeholder="e.g. warm, playful, expert but approachable">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Products / services</label>
+        <textarea name="products" class="form-control" rows="3" placeholder="What do you sell? Key offers."></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Platforms</label>
+        <div class="d-flex gap-3">
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="platforms" value="instagram" id="ig" checked><label class="form-check-label" for="ig">Instagram</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="platforms" value="facebook" id="fb" checked><label class="form-check-label" for="fb">Facebook</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="platforms" value="tiktok" id="tt" checked><label class="form-check-label" for="tt">TikTok</label></div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg">Save brand &amp; continue</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Pricing — PostPilot{% endblock %}
+{% block content %}
+<h2 class="text-center mb-4">Simple pricing</h2>
+<div class="row g-4 justify-content-center">
+  {% for key, p in plans.items() %}
+  <div class="col-md-3">
+    <div class="card h-100 shadow-sm {% if key=='pro' %}border-primary{% endif %}">
+      <div class="card-body d-flex flex-column">
+        <h5>{{ p.name }}</h5>
+        <div class="display-6 fw-bold">${{ p.price }}<span class="fs-6 text-muted">/mo</span></div>
+        <ul class="list-unstyled my-3 small">
+          <li><i class="bi bi-check2 text-success"></i> {{ p.posts }} posts/week</li>
+          <li><i class="bi bi-check2 text-success"></i> {{ p.brands }} brand(s)</li>
+          <li><i class="bi bi-check2 text-success"></i> FB, IG, TikTok content</li>
+          <li><i class="bi bi-check2 text-success"></i> Captions, hashtags, image prompts</li>
+          <li><i class="bi bi-check2 text-success"></i> CSV export</li>
+        </ul>
+        <div class="mt-auto">
+          {% if key == 'free' %}
+            <a href="{{ url_for('signup') }}" class="btn btn-outline-secondary w-100">Start free</a>
+          {% else %}
+            <form method="POST" action="{{ url_for('billing_checkout') }}">
+              <input type="hidden" name="plan" value="{{ key }}">
+              <button class="btn btn-primary w-100">Choose {{ p.name }}</button>
+            </form>
+            {% if user %}
+            <form method="POST" action="{{ url_for('manual_upgrade') }}" class="mt-2">
+              <input type="hidden" name="plan" value="{{ key }}">
+              <button class="btn btn-sm btn-link w-100">Demo upgrade (no payment)</button>
+            </form>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<p class="text-center text-muted small mt-4">Set STRIPE_PAYMENT_LINK env var to enable real checkout. Otherwise use demo upgrade.</p>
+{% endblock %}
