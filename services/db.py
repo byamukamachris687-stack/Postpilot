@@ -133,8 +133,13 @@ def get_user_by_id(uid):
 
 
 def ensure_plan_active(user):
-    """Downgrade to free if the paid plan has expired."""
-    if not user or user.get("plan") == "free":
+    """Downgrade to free if the paid plan has expired. Admins never expire."""
+    if not user:
+        return user
+    if user.get("is_admin"):
+        return user
+    if user.get("plan") == "free":
+        # free trial: only block if expired (handled in posts_remaining/generate)
         return user
     expires = user.get("plan_expires_at")
     if not expires:

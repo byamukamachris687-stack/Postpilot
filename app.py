@@ -19,6 +19,25 @@ app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 db.init_db()
 
+# Bootstrap admin account from env (format: "username:password")
+_bootstrap = os.environ.get("ADMIN_BOOTSTRAP", "")
+if _bootstrap and ":" in _bootstrap:
+    _uname, _pw = _bootstrap.split(":", 1)
+    _uname = _uname.strip()
+    _pw = _pw.strip()
+    if _uname and _pw:
+        from werkzeug.security import generate_password_hash
+        _existing = db.get_user_by_email(_uname)
+        if not _existing:
+            _uid = db.create_user(_uname, generate_password_hash(_pw))
+            if _uid:
+                db.set_user_admin(_uid, True)
+                import datetime
+                db.update_user_plan(_uid, "bimonthly", plan_expires_at=(datetime.date.today() + datetime.timedelta(days=3650)).isoformat())
+        else:
+            if not _existing.get("is_admin"):
+                db.set_user_admin(_existing["id"], True)
+
 PRICE_IDS = {
     "starter": config.STRIPE_PRICE_STARTER,
     "pro": config.STRIPE_PRICE_PRO,
@@ -174,6 +193,10 @@ def signup():
         if uid is None:
             flash("Could not create account.", "danger")
             return render_template("signup.html")
+        if email.lower().strip() in config.ADMIN_EMAILS:
+            db.set_user_admin(uid, True)
+            import datetime
+            db.update_user_plan(uid, "bimonthly", plan_expires_at=(datetime.date.today() + datetime.timedelta(days=3650)).isoformat())
         session["user_id"] = uid
         flash("Welcome! Let's set up your first brand.", "success")
         return redirect(url_for("onboarding"))
