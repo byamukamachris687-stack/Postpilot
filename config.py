@@ -1,8 +1,8 @@
 import os
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-DB_PATH = os.path.join(DATA_DIR, "agency.db")
+DATA_DIR = os.environ.get("DATA_DIR", os.path.join(BASE_DIR, "data"))
+DB_PATH = os.environ.get("DB_PATH", os.path.join(DATA_DIR, "agency.db"))
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-in-production-please")
 ADMIN_EMAILS = [e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]

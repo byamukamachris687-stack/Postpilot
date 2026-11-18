@@ -245,7 +245,11 @@ def onboarding():
         if db.count_brands(user["id"]) >= plan_limits(user)["brands"]:
             flash("You've reached your brand limit. Upgrade to add more.", "warning")
             return redirect(url_for("pricing"))
-        db.create_brand(user["id"], data)
+        try:
+            db.create_brand(user["id"], data)
+        except Exception as e:
+            flash(f"Could not save brand: {e}", "danger")
+            return render_template("onboarding.html")
         flash("Brand created! Generate your first batch of content.", "success")
         return redirect(url_for("dashboard"))
     return render_template("onboarding.html")
@@ -726,6 +730,13 @@ def settings():
     user = current_user()
     bs = db.get_brands(user["id"])
     return render_template("settings.html", brands=bs)
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    import traceback
+    tb = traceback.format_exc()
+    return (f"<pre>Internal Server Error:\\n{tb}</pre>", 500)
 
 
 if __name__ == "__main__":
