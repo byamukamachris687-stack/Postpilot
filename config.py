@@ -28,7 +28,8 @@ STRIPE_PRICE_STARTER = os.environ.get("STRIPE_PRICE_STARTER", "")
 STRIPE_PRICE_PRO = os.environ.get("STRIPE_PRICE_PRO", "")
 STRIPE_PRICE_AGENCY = os.environ.get("STRIPE_PRICE_AGENCY", "")
 
-# Free tier limits
+# Free tier: 3-day trial
+FREE_TRIAL_DAYS = 3
 FREE_POSTS_PER_WEEK = 5
 FREE_BRANDS = 1
 
@@ -39,7 +40,7 @@ CURRENCY = "USD"
 
 # Pricing plans (mobile money): 14 days $2, 1 month $5, 2 months $10
 PLANS = {
-    "free": {"name": "Free", "price": 0, "days": 0, "posts": FREE_POSTS_PER_WEEK, "brands": FREE_BRANDS},
+    "free": {"name": "Free (3-day trial)", "price": 0, "days": FREE_TRIAL_DAYS, "posts": FREE_POSTS_PER_WEEK, "brands": FREE_BRANDS},
     "trial14": {"name": "14 Days", "price": 2, "days": 14, "posts": 30, "brands": 1},
     "monthly": {"name": "1 Month", "price": 5, "days": 30, "posts": 60, "brands": 1},
     "bimonthly": {"name": "2 Months", "price": 10, "days": 60, "posts": 120, "brands": 2},

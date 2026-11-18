@@ -74,6 +74,18 @@ def plan_limits(user):
 
 
 def posts_remaining(user):
+    if not user:
+        return 0
+    # Free trial expired -> no posts
+    if user.get("plan") == "free":
+        expires = user.get("plan_expires_at")
+        if expires:
+            import datetime
+            try:
+                if datetime.date.fromisoformat(expires) < datetime.date.today():
+                    return 0
+            except ValueError:
+                pass
     used = db.get_usage(user["id"])
     limit = plan_limits(user)["posts"]
     return max(0, limit - used)
@@ -252,6 +264,17 @@ def dashboard():
 @login_required
 def generate():
     user = current_user()
+    # Free trial expired -> force upgrade
+    if user.get("plan") == "free":
+        expires = user.get("plan_expires_at")
+        if expires:
+            import datetime
+            try:
+                if datetime.date.fromisoformat(expires) < datetime.date.today():
+                    flash("Your 3-day free trial has ended. Upgrade to continue generating content.", "warning")
+                    return redirect(url_for("pricing"))
+            except ValueError:
+                pass
     bs = db.get_brands(user["id"])
     if not bs:
         return redirect(url_for("onboarding"))

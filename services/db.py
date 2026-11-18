@@ -101,11 +101,14 @@ def row_to_dict(row):
 
 # ---------- users ----------
 def create_user(email, password_hash):
+    import datetime
+    # Free tier is a 3-day trial
+    trial_expires = (datetime.date.today() + datetime.timedelta(days=3)).isoformat()
     conn = get_conn()
     try:
         cur = conn.execute(
-            "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-            (email.lower().strip(), password_hash),
+            "INSERT INTO users (email, password_hash, plan, plan_expires_at) VALUES (?,?,?,?)",
+            (email.lower().strip(), password_hash, "free", trial_expires),
         )
         conn.commit()
         return cur.lastrowid
