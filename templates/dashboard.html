@@ -42,27 +42,72 @@
       </div>
       <div class="card-body">
         {% if p.hook %}<p class="fw-semibold mb-1">🪝 {{ p.hook }}</p>{% endif %}
-        <p class="mb-2" style="white-space:pre-wrap;">{{ p.caption }}</p>
+        <p class="mb-2 caption-text" data-postid="{{ p.id }}" style="white-space:pre-wrap;">{{ p.caption }}</p>
         {% if p.hashtags %}<p class="small text-primary mb-2">{{ p.hashtags }}</p>{% endif %}
         {% if p.image_prompt %}<details class="small text-muted"><summary>Image prompt</summary><p class="mt-1">{{ p.image_prompt }}</p></details>{% endif %}
       </div>
-      <div class="card-footer d-flex gap-2 flex-wrap">
-        <form method="POST" action="{{ url_for('post_status', pid=p.id) }}" class="d-inline">
-          <input type="hidden" name="status" value="approved">
-          <button class="btn btn-sm btn-success" {% if p.status=='approved' %}disabled{% endif %}>Approve</button>
-        </form>
-        <form method="POST" action="{{ url_for('post_status', pid=p.id) }}" class="d-inline">
-          <input type="hidden" name="status" value="scheduled">
-          <button class="btn btn-sm btn-outline-primary" {% if p.status=='scheduled' %}disabled{% endif %}>Schedule</button>
-        </form>
-        <span class="badge bg-{{ 'success' if p.status=='approved' else ('warning' if p.status=='scheduled' else 'secondary') }} align-self-center">{{ p.status }}</span>
-        <form method="POST" action="{{ url_for('post_delete', pid=p.id) }}" class="ms-auto" onsubmit="return confirm('Delete this post?')">
-          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-        </form>
+      <div class="card-footer">
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <form method="POST" action="{{ url_for('post_status', pid=p.id) }}" class="d-inline">
+            <input type="hidden" name="status" value="approved">
+            <button class="btn btn-sm btn-success" {% if p.status=='approved' %}disabled{% endif %}>Approve</button>
+          </form>
+          <form method="POST" action="{{ url_for('post_status', pid=p.id) }}" class="d-inline">
+            <input type="hidden" name="status" value="scheduled">
+            <button class="btn btn-sm btn-outline-primary" {% if p.status=='scheduled' %}disabled{% endif %}>Schedule</button>
+          </form>
+          <span class="badge bg-{{ 'success' if p.status=='approved' else ('warning' if p.status=='scheduled' else 'secondary') }} align-self-center">{{ p.status }}</span>
+          <form method="POST" action="{{ url_for('post_delete', pid=p.id) }}" class="ms-auto" onsubmit="return confirm('Delete this post?')">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+        <div class="d-flex gap-1 flex-wrap align-items-center">
+          <span class="small text-muted me-1">Rewrite:</span>
+          {% for key, label in [('engaging','Engaging'),('shorter','Shorter'),('emojis','Emojis'),('professional','Pro'),('viral','Viral'),('story','Story')] %}
+          <button class="btn btn-sm btn-outline-secondary rewrite-btn" data-postid="{{ p.id }}" data-instr="{{ key }}" data-platform="{{ p.platform }}" type="button">{{ label }}</button>
+          {% endfor %}
+          <span class="rewrite-status small text-muted ms-2" id="rw-{{ p.id }}"></span>
+        </div>
       </div>
     </div>
   </div>
   {% endfor %}
 </div>
 {% endif %}
+{% block scripts %}
+<script>
+document.querySelectorAll('.rewrite-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const postId = btn.dataset.postid;
+    const instr = btn.dataset.instr;
+    const platform = btn.dataset.platform;
+    const status = document.getElementById('rw-' + postId);
+    const captionEl = document.querySelector('.caption-text[data-postid="' + postId + '"]');
+    const original = captionEl.textContent;
+    status.textContent = 'Rewriting...';
+    btn.disabled = true;
+    try {
+      const fd = new FormData();
+      fd.append('caption', original);
+      fd.append('instruction', instr);
+      fd.append('platform', platform);
+      const res = await fetch('{{ url_for("tools_rewrite") }}', {method:'POST', body: fd});
+      const data = await res.json();
+      if (data.caption) {
+        captionEl.textContent = data.caption;
+        const card = captionEl.closest('.card');
+        const hashP = card.querySelector('.small.text-primary, .text-primary.mb-2');
+        if (data.hashtags && hashP) hashP.textContent = data.hashtags;
+        status.textContent = '\u2713 ' + instr;
+      } else {
+        status.textContent = 'Error';
+      }
+    } catch (e) {
+      status.textContent = 'Failed';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+</script>
 {% endblock %}

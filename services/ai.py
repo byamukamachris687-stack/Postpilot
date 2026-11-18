@@ -170,6 +170,98 @@ def _mock_ideas(brand, n):
     ]}
 
 
+def rewrite_post(caption, instruction, platform="instagram"):
+    from services.prompts import build_rewrite_prompt, SYSTEM_PROMPT
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": build_rewrite_prompt(caption, instruction, platform)},
+    ]
+    result = _call_llm(messages, temperature=0.8, max_tokens=800)
+    if result is None:
+        result = {"caption": caption, "hashtags": ""}
+    return result
+
+
+def generate_replies(brand, comment, n=3):
+    from services.prompts import build_reply_prompt, SYSTEM_PROMPT
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": build_reply_prompt(brand, comment, n)},
+    ]
+    result = _call_llm(messages, temperature=0.85, max_tokens=600)
+    if result is None:
+        result = {"replies": [{"tone": "friendly", "text": "Thanks for your comment! 😊"}]}
+    return result.get("replies", [])
+
+
+def repurpose_content(brand, source_text, n=5):
+    from services.prompts import build_repurpose_prompt, SYSTEM_PROMPT
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": build_repurpose_prompt(brand, source_text, n)},
+    ]
+    result = _call_llm(messages, temperature=0.85, max_tokens=2000)
+    if result is None:
+        result = {"posts": []}
+    posts = result.get("posts", [])
+    for p in posts:
+        p.setdefault("caption", "")
+        p.setdefault("hashtags", "")
+        p.setdefault("hook", "")
+        p.setdefault("content_type", "post")
+    return posts
+
+
+def weekly_strategy(brand):
+    from services.prompts import build_strategy_prompt, SYSTEM_PROMPT
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": build_strategy_prompt(brand)},
+    ]
+    result = _call_llm(messages, temperature=0.8, max_tokens=1500)
+    if result is None:
+        result = {"strategy": [], "tip": "Post consistently and engage with comments."}
+    return result
+
+
+def ai_interview(brand, post_topic, answers=None):
+    """AI asks clarifying questions, then refines a post based on answers."""
+    from services.prompts import SYSTEM_PROMPT
+    if not answers:
+        # Step 1: ask questions
+        prompt = f"""Brand: {brand['name']} ({brand.get('industry')})
+Audience: {brand.get('audience')}
+Tone: {brand.get('tone')}
+
+The user wants to create a post about: "{post_topic}"
+
+Before writing, ask 3-4 short clarifying questions to make the post better (e.g., what's the key message, any offer/discount, which platform, call to action). Keep questions concise.
+
+Return JSON: {{"questions": ["q1", "q2", ...]}}"""
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
+        result = _call_llm(messages, temperature=0.7, max_tokens=400)
+        if result is None:
+            result = {"questions": ["What's the main message?", "Any offer or discount?", "Which platform?"]}
+        return {"step": "questions", "questions": result.get("questions", [])}
+    else:
+        # Step 2: generate post from answers
+        qa = "\n".join(f"Q: {q}\nA: {a}" for q, a in answers.items())
+        prompt = f"""Brand: {brand['name']} ({brand.get('industry')})
+Audience: {brand.get('audience')}
+Tone: {brand.get('tone')}
+
+Topic: {post_topic}
+Clarifications:
+{qa}
+
+Now write the post. Return JSON: {{"platform": "instagram|facebook|tiktok", "content_type": "reel|carousel|post", "caption": "...", "hashtags": "...", "hook": "...", "image_prompt": "..."}}"""
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
+        result = _call_llm(messages, temperature=0.85, max_tokens=800)
+        if result is None:
+            result = {"platform": "instagram", "content_type": "post", "caption": post_topic, "hashtags": "", "hook": "", "image_prompt": ""}
+        return {"step": "post", "post": result}
+
+
 def provider_status():
     ps = _providers()
     if not ps:

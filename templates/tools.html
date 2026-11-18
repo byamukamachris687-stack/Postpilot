@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}AI Tools — PostPilot{% endblock %}
+{% block content %}
+<h2 class="mb-3"><i class="bi bi-magic"></i> AI Tools</h2>
+<p class="text-muted">Go beyond generation. Refine, repurpose, and strategize with AI.</p>
+<div class="row g-3">
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h5><i class="bi bi-chat-quote text-primary"></i> Comment Reply Generator</h5>
+      <p class="text-muted small">Paste a customer comment, get 3 on-brand reply options.</p>
+      <a href="{{ url_for('tools_replies') }}" class="btn btn-outline-primary btn-sm">Open</a>
+    </div></div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h5><i class="bi bi-arrow-repeat text-success"></i> Content Repurposer</h5>
+      <p class="text-muted small">Paste a blog post or notes → 5 social posts saved to your calendar.</p>
+      <a href="{{ url_for('tools_repurpose') }}" class="btn btn-outline-success btn-sm">Open</a>
+    </div></div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h5><i class="bi bi-calendar-week text-warning"></i> Weekly Strategy</h5>
+      <p class="text-muted small">AI builds a 7-day content plan with themes and ideas.</p>
+      <a href="{{ url_for('tools_strategy') }}" class="btn btn-outline-warning btn-sm">Open</a>
+    </div></div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h5><i class="bi bi-question-circle text-info"></i> AI Interview</h5>
+      <p class="text-muted small">AI asks you questions, then writes a post from your answers.</p>
+      <a href="{{ url_for('tools_interview') }}" class="btn btn-outline-info btn-sm">Open</a>
+    </div></div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h5><i class="bi bi-pencil text-danger"></i> Caption Rewriter</h5>
+      <p class="text-muted small">Rewrite any post: more engaging, shorter, emojis, professional, viral.</p>
+      <p class="small text-muted mb-0">Available on each post card in the dashboard.</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

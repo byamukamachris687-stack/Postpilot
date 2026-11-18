@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}AI Interview — PostPilot{% endblock %}
+{% block content %}
+<h2 class="mb-3">AI Interview</h2>
+<p class="text-muted">Tell the AI your topic. It'll ask a few questions, then write the post from your answers.</p>
+
+<form method="POST" class="card shadow-sm p-4 mb-4">
+  <input type="hidden" name="step" value="{{ '2' if step=='questions' else '1' }}">
+  <div class="mb-3">
+    <label class="form-label">Brand</label>
+    <select name="brand_id" class="form-select">
+      {% for b in brands %}<option value="{{ b.id }}" {% if brand and b.id==brand.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Topic / what you want to post about</label>
+    <input name="topic" class="form-control" value="{{ topic }}" placeholder="e.g. Our new summer menu" required>
+  </div>
+
+  {% if step == 'questions' and questions %}
+  <div class="mb-3">
+    <h5>The AI wants to know:</h5>
+    {% for q in questions %}
+    <div class="mb-3">
+      <label class="form-label">{{ q }}</label>
+      <input type="hidden" name="q_{{ loop.index0 }}" value="{{ q }}">
+      <textarea name="a_{{ loop.index0 }}" class="form-control" rows="2" required></textarea>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <button class="btn btn-primary">{% if step=='questions' %}Generate post from answers{% else %}Start interview{% endif %}</button>
+</form>
+
+{% if post %}
+<h4>Generated post (saved to your calendar)</h4>
+<div class="card shadow-sm">
+  <div class="card-header">
+    <span class="badge bg-{{ 'danger' if post.platform=='tiktok' else ('primary' if post.platform=='instagram' else 'info') }}">{{ post.platform|capitalize }}</span>
+    {% if post.hook %}<span class="ms-2">🪝 {{ post.hook }}</span>{% endif %}
+  </div>
+  <div class="card-body">
+    <p style="white-space:pre-wrap;">{{ post.caption }}</p>
+    {% if post.hashtags %}<p class="small text-primary mb-0">{{ post.hashtags }}</p>{% endif %}
+    {% if post.image_prompt %}<details class="small text-muted mt-2"><summary>Image prompt</summary><p>{{ post.image_prompt }}</p></details>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

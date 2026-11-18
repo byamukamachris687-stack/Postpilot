@@ -84,3 +84,61 @@ Tone: {brand.get('tone')}
 
 Generate {n} fresh content ideas (topics/angles) for this brand's social media, mixing formats (reels, carousels, lives, stories).
 Return JSON: {{"ideas": [{{"title": "...", "angle": "...", "format": "...", "platform": "..."}}]}}"""
+
+
+REWRITE_INSTRUCTIONS = {
+    "engaging": "Make the caption more engaging and conversational. Add a hook, a question, and a clear CTA. Keep the same core message.",
+    "shorter": "Shorten the caption to under 60 words while keeping the key message and CTA.",
+    "emojis": "Add relevant emojis throughout the caption (not too many) to make it more eye-catching.",
+    "professional": "Rewrite in a more professional, polished tone suitable for B2B. Remove slang and excessive emojis.",
+    "story": "Rewrite as a short personal story (first person) that leads into the offer/CTA.",
+    "viral": "Rewrite to maximize virality: strong hook in first 5 words, curiosity gap, short sentences, bold claim.",
+}
+
+
+def build_rewrite_prompt(caption, instruction_key, platform="instagram"):
+    instr = REWRITE_INSTRUCTIONS.get(instruction_key, instruction_key)
+    return f"""Platform: {platform}
+Original caption:
+\"\"\"{caption}\"\"\"
+
+Task: {instr}
+
+Return JSON: {{"caption": "rewritten caption", "hashtags": "updated hashtags if needed"}}"""
+
+
+def build_reply_prompt(brand, comment, n=3):
+    return f"""Brand: {brand['name']} ({brand.get('industry')})
+Brand voice: {brand.get('tone') or 'friendly, professional'}
+Audience: {brand.get('audience')}
+
+A customer left this comment on your post:
+\"\"\"{comment}\"\"\"
+
+Generate {n} different reply options. Mix tones: one friendly, one helpful/informative, one short & witty. Keep each under 40 words. Include an emoji or two where natural.
+
+Return JSON: {{"replies": [{{"tone": "...", "text": "..."}}]}}"""
+
+
+def build_repurpose_prompt(brand, source_text, n=5):
+    return f"""Brand: {brand['name']} ({brand.get('industry')})
+Audience: {brand.get('audience')}
+Tone: {brand.get('tone')}
+
+Source content (blog post / article / notes):
+\"\"\"{source_text[:3000]}\"\"\"
+
+Turn this into {n} social media posts across Instagram, Facebook, and TikTok. Each post should extract one key idea/insight from the source. Vary formats (tip, quote, story, list, question).
+
+Return JSON: {{"posts": [{{"platform": "instagram|facebook|tiktok", "content_type": "reel|carousel|post", "caption": "...", "hashtags": "...", "hook": "..."}}]}}"""
+
+
+def build_strategy_prompt(brand):
+    return f"""Brand: {brand['name']} ({brand.get('industry')})
+Audience: {brand.get('audience')}
+Tone: {brand.get('tone')}
+Products: {brand.get('products')}
+
+Create a 7-day content strategy for this brand's social media. For each day: theme, content type, platform focus, and one specific post idea.
+
+Return JSON: {{"strategy": [{{"day": "Monday", "theme": "...", "platform": "...", "format": "...", "idea": "..."}}], "tip": "one pro tip for the week"}}"""

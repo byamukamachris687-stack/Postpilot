@@ -598,6 +598,128 @@ def admin_reject_payment(pid):
     return redirect(url_for("admin_payments"))
 
 
+# ---------- AI tools ----------
+@app.route("/tools")
+@login_required
+def tools():
+    bs = db.get_brands(current_user()["id"])
+    return render_template("tools.html", brands=bs)
+
+
+@app.route("/tools/rewrite", methods=["POST"])
+@login_required
+def tools_rewrite():
+    from services.ai import rewrite_post
+    caption = request.form.get("caption", "").strip()
+    instruction = request.form.get("instruction", "engaging")
+    platform = request.form.get("platform", "instagram")
+    if not caption:
+        return jsonify({"error": "caption required"}), 400
+    result = rewrite_post(caption, instruction, platform)
+    return jsonify(result)
+
+
+@app.route("/tools/replies", methods=["GET", "POST"])
+@login_required
+def tools_replies():
+    user = current_user()
+    bs = db.get_brands(user["id"])
+    brand = None
+    replies = None
+    comment = ""
+    if request.method == "POST":
+        bid = int(request.form.get("brand_id"))
+        brand = db.get_brand(bid, user["id"])
+        comment = request.form.get("comment", "").strip()
+        if brand and comment:
+            from services.ai import generate_replies
+            replies = generate_replies(brand, comment, n=3)
+    return render_template("replies.html", brands=bs, brand=brand, comment=comment, replies=replies)
+
+
+@app.route("/tools/repurpose", methods=["GET", "POST"])
+@login_required
+def tools_repurpose():
+    user = current_user()
+    bs = db.get_brands(user["id"])
+    brand = None
+    posts = None
+    source = ""
+    if request.method == "POST":
+        bid = int(request.form.get("brand_id"))
+        brand = db.get_brand(bid, user["id"])
+        source = request.form.get("source", "").strip()
+        if brand and source:
+            from services.ai import repurpose_content
+            posts = repurpose_content(brand, source, n=5)
+            if posts:
+                db.save_posts(user["id"], brand["id"], posts)
+                db.increment_usage(user["id"], len(posts))
+                flash(f"Repurposed into {len(posts)} posts and saved to your calendar.", "success")
+    return render_template("repurpose.html", brands=bs, brand=brand, source=source, posts=posts)
+
+
+@app.route("/tools/strategy", methods=["GET", "POST"])
+@login_required
+def tools_strategy():
+    user = current_user()
+    bs = db.get_brands(user["id"])
+    brand = None
+    strategy = None
+    if request.method == "POST":
+        bid = int(request.form.get("brand_id"))
+        brand = db.get_brand(bid, user["id"])
+        if brand:
+            from services.ai import weekly_strategy
+            strategy = weekly_strategy(brand)
+    return render_template("strategy.html", brands=bs, brand=brand, strategy=strategy)
+
+
+@app.route("/tools/interview", methods=["GET", "POST"])
+@login_required
+def tools_interview():
+    user = current_user()
+    bs = db.get_brands(user["id"])
+    brand = None
+    topic = request.form.get("topic", "").strip() if request.method == "POST" else ""
+    step = None
+    questions = None
+    post = None
+    # handle step 2: answers submitted
+    if request.method == "POST" and request.form.get("step") == "2":
+        bid = int(request.form.get("brand_id"))
+        brand = db.get_brand(bid, user["id"])
+        topic = request.form.get("topic", "").strip()
+        # collect answers
+        answers = {}
+        i = 0
+        while True:
+            q = request.form.get(f"q_{i}")
+            if q is None:
+                break
+            a = request.form.get(f"a_{i}", "").strip()
+            answers[q] = a
+            i += 1
+        if brand and topic:
+            from services.ai import ai_interview
+            res = ai_interview(brand, topic, answers=answers)
+            post = res.get("post")
+            if post:
+                db.save_posts(user["id"], brand["id"], [post])
+                db.increment_usage(user["id"], 1)
+                flash("Post created from interview and saved to your calendar.", "success")
+    elif request.method == "POST" and topic:
+        bid = int(request.form.get("brand_id"))
+        brand = db.get_brand(bid, user["id"])
+        if brand:
+            from services.ai import ai_interview
+            res = ai_interview(brand, topic)
+            step = "questions"
+            questions = res.get("questions", [])
+    return render_template("interview.html", brands=bs, brand=brand, topic=topic,
+                           step=step, questions=questions, post=post)
+
+
 @app.route("/settings")
 @login_required
 def settings():

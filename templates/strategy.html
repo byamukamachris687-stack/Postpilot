@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Weekly Strategy — PostPilot{% endblock %}
+{% block content %}
+<h2 class="mb-3">Weekly Content Strategy</h2>
+<form method="POST" class="card shadow-sm p-4 mb-4">
+  <div class="mb-3">
+    <label class="form-label">Brand</label>
+    <select name="brand_id" class="form-select">
+      {% for b in brands %}<option value="{{ b.id }}" {% if brand and b.id==brand.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-primary">Generate 7-day strategy</button>
+</form>
+
+{% if strategy %}
+{% if strategy.tip %}<div class="alert alert-info"><strong>Pro tip:</strong> {{ strategy.tip }}</div>{% endif %}
+<div class="row g-3">
+  {% for d in strategy.strategy %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-bold">{{ d.day }} — {{ d.theme }}</div>
+      <div class="card-body">
+        <p class="small mb-1"><span class="badge bg-secondary">{{ d.platform }}</span> <span class="badge bg-light text-dark">{{ d.format }}</span></p>
+        <p class="mb-0">{{ d.idea }}</p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
