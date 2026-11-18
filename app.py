@@ -19,6 +19,12 @@ app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 db.init_db()
 
+PRICE_IDS = {
+    "starter": config.STRIPE_PRICE_STARTER,
+    "pro": config.STRIPE_PRICE_PRO,
+    "agency": config.STRIPE_PRICE_AGENCY,
+}
+
 
 # ---------- helpers ----------
 def current_user():
@@ -317,33 +323,84 @@ def billing_checkout():
     if plan not in config.PLANS or plan == "free":
         flash("Invalid plan.", "danger")
         return redirect(url_for("pricing"))
-    link = config.STRIPE_PAYMENT_LINK
-    if not link:
-        flash("Payments not configured yet. Set STRIPE_PAYMENT_LINK in env to enable checkout.", "warning")
-        return redirect(url_for("pricing"))
-    # append client_reference_id for webhook reconciliation
     user = current_user()
-    sep = "&" if "?" in link else "?"
-    url = f"{link}{sep}client_reference_id={user['id']}&prefilled_email={user['email']}"
-    return redirect(url)
+    price_id = PRICE_IDS.get(plan, "")
+    # Prefer real Stripe Checkout if configured
+    if config.STRIPE_SECRET_KEY and price_id:
+        try:
+            from services.stripe import create_checkout_session
+            base = request.url_root.rstrip("/")
+            session = create_checkout_session(
+                user, price_id, plan,
+                success_url=base + "/billing/success?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=base + "/pricing",
+            )
+            return redirect(session["url"])
+        except Exception as e:
+            flash(f"Checkout error: {e}", "danger")
+            return redirect(url_for("pricing"))
+    # Fallback to legacy Payment Link
+    link = config.STRIPE_PAYMENT_LINK
+    if link:
+        sep = "&" if "?" in link else "?"
+        url = f"{link}{sep}client_reference_id={user['id']}&prefilled_email={user['email']}"
+        return redirect(url)
+    flash("Payments not configured yet. Set STRIPE_SECRET_KEY + STRIPE_PRICE_* (or STRIPE_PAYMENT_LINK) in env.", "warning")
+    return redirect(url_for("pricing"))
 
 
 @app.route("/billing/webhook", methods=["POST"])
 def billing_webhook():
-    # Minimal: in production verify Stripe signature. Here we trust a simple secret header.
-    import json as _j
-    payload = request.get_data(as_text=True)
-    # Expect {user_id, plan} for manual testing; real Stripe payloads need parsing.
+    from services.stripe import verify_webhook_signature, construct_event
+    payload = request.get_data()
+    sig = request.headers.get("Stripe-Signature", "")
+    if config.STRIPE_WEBHOOK_SECRET:
+        if not verify_webhook_signature(payload, sig):
+            return {"error": "invalid signature"}, 400
     try:
-        data = _j.loads(payload)
+        event = construct_event(payload)
     except Exception:
-        return {"ok": False}, 400
-    uid = data.get("user_id")
-    plan = data.get("plan")
-    if uid and plan in config.PLANS:
-        db.update_user_plan(uid, plan)
-        return {"ok": True}
-    return {"ok": False}, 400
+        return {"error": "bad payload"}, 400
+
+    etype = event.get("type", "")
+    data = (event.get("data") or {}).get("object") or {}
+
+    if etype == "checkout.session.completed":
+        uid = data.get("client_reference_id") or (data.get("metadata") or {}).get("user_id")
+        plan = (data.get("metadata") or {}).get("plan")
+        if uid and plan in config.PLANS:
+            db.update_user_plan(int(uid), plan, stripe_customer_id=data.get("customer"))
+
+    if etype in ("customer.subscription.updated", "customer.subscription.deleted"):
+        status = data.get("status")
+        uid = (data.get("metadata") or {}).get("user_id")
+        plan = (data.get("metadata") or {}).get("plan")
+        if uid:
+            if etype == "customer.subscription.deleted" or status in ("canceled", "unpaid"):
+                db.update_user_plan(int(uid), "free")
+            elif plan in config.PLANS:
+                db.update_user_plan(int(uid), plan)
+
+    return {"received": True}, 200
+
+
+@app.route("/billing/success")
+@login_required
+def billing_success():
+    session_id = request.args.get("session_id")
+    if session_id and config.STRIPE_SECRET_KEY:
+        try:
+            from services.stripe import retrieve_session
+            s = retrieve_session(session_id)
+            plan = (s.get("metadata") or {}).get("plan")
+            if plan in config.PLANS:
+                db.update_user_plan(current_user()["id"], plan)
+                flash(f"Welcome to {config.PLANS[plan]['name']}! Your plan is active.", "success")
+        except Exception as e:
+            flash(f"Could not verify session: {e}", "warning")
+    else:
+        flash("Payment received. Your plan will update shortly.", "success")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/account/upgrade", methods=["POST"])  # manual upgrade for demo

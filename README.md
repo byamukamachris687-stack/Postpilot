@@ -27,11 +27,15 @@ Works WITHOUT an OpenAI key — demo mode generates placeholder content so you c
 
 ## Going to production
 
-1. Set a strong `SECRET_KEY` and `OPENAI_API_KEY`.
-2. Create a Stripe product + payment link, set `STRIPE_PAYMENT_LINK`.
+1. Set a strong `SECRET_KEY` and `GROQ_API_KEY` (free) or `OPENAI_API_KEY`.
+2. Stripe setup (full Checkout, not just payment links):
+   - Create a Stripe account → Dashboard → Products → add 3 products (Starter $29, Pro $79, Agency $199) with monthly recurring prices.
+   - Copy each Price ID (`price_...`) into `STRIPE_PRICE_STARTER/PRO/AGENCY`.
+   - Developers → API keys → copy the Secret key into `STRIPE_SECRET_KEY`.
+   - Developers → Webhooks → add endpoint `https://yourdomain.com/billing/webhook`, subscribe to `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
 3. Deploy to Render / Railway / Fly.io (free tier works for MVP) or a $5 VPS.
 4. Point a custom domain at it.
-5. Add real Stripe webhook verification in `/billing/webhook` (currently a simple JSON stub).
+5. Test a real checkout with Stripe's test card `4242 4242 4242 4242`.
 
 ## Earning plan (90 days)
 

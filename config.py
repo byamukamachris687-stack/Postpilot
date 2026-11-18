@@ -18,8 +18,14 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 
-STRIPE_PAYMENT_LINK = os.environ.get("STRIPE_PAYMENT_LINK", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PAYMENT_LINK = os.environ.get("STRIPE_PAYMENT_LINK", "")  # legacy fallback
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+# Stripe Price IDs (create these in your Stripe dashboard -> Products)
+STRIPE_PRICE_STARTER = os.environ.get("STRIPE_PRICE_STARTER", "")
+STRIPE_PRICE_PRO = os.environ.get("STRIPE_PRICE_PRO", "")
+STRIPE_PRICE_AGENCY = os.environ.get("STRIPE_PRICE_AGENCY", "")
 
 # Free tier limits
 FREE_POSTS_PER_WEEK = 5
