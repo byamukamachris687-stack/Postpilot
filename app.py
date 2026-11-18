@@ -66,6 +66,16 @@ def pricing():
     return render_template("pricing.html")
 
 
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
 @app.route("/sample", methods=["GET", "POST"])
 def sample():
     """Free, no-login demo: prospect enters their business, gets 3 real posts instantly."""

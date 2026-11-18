@@ -3,16 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}PostPilot — AI Social Media Agency{% endblock %}</title>
+  <title>{% block title %}PostPilot — AI Social Media Agency for Small Businesses{% endblock %}</title>
+  <meta name="description" content="Generate a full week of Facebook, Instagram and TikTok posts in 60 seconds. On-brand captions, hashtags, image prompts and best posting times.">
+  <meta property="og:title" content="PostPilot — AI Social Media Agency">
+  <meta property="og:description" content="A full week of on-brand social content in 60 seconds.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+  <!-- Analytics: uncomment and set your domain when ready (Plausible/Umami) -->
+  <!-- <script defer data-domain="yourdomain.com" src="https://plausible.io/js/script.js"></script> -->
   {% block head %}{% endblock %}
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url_for('index') }}"><i class="bi bi-rocket-takeoff"></i> PostPilot</a>
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="28" height="28" class="rounded-2">
+      PostPilot
+    </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto">
@@ -49,8 +59,16 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="border-top py-4 mt-5 text-center text-muted small">
-  PostPilot — AI Social Media Agency · Built to earn you $50/day
+<footer class="border-top py-4 mt-5 text-muted small">
+  <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>© 2026 PostPilot · AI Social Media Agency</div>
+    <div class="d-flex gap-3">
+      <a href="{{ url_for('pricing') }}" class="text-muted text-decoration-none">Pricing</a>
+      <a href="{{ url_for('sample') }}" class="text-muted text-decoration-none">Free sample</a>
+      <a href="{{ url_for('terms') }}" class="text-muted text-decoration-none">Terms</a>
+      <a href="{{ url_for('privacy') }}" class="text-muted text-decoration-none">Privacy</a>
+    </div>
+  </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

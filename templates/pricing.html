@@ -24,12 +24,7 @@
               <input type="hidden" name="plan" value="{{ key }}">
               <button class="btn btn-primary w-100">Choose {{ p.name }}</button>
             </form>
-            {% if user %}
-            <form method="POST" action="{{ url_for('manual_upgrade') }}" class="mt-2">
-              <input type="hidden" name="plan" value="{{ key }}">
-              <button class="btn btn-sm btn-link w-100">Demo upgrade (no payment)</button>
-            </form>
-            {% endif %}
+            <p class="small text-muted text-center mt-2 mb-0">Cancel anytime · No long contract</p>
           {% endif %}
         </div>
       </div>
