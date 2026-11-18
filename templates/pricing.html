@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Pricing — PostPilot{% endblock %}
 {% block content %}
-<h2 class="text-center mb-4">Simple pricing</h2>
+<h2 class="text-center mb-2">Simple pricing</h2>
+<p class="text-center text-muted mb-4">Pay with Airtel Money or MTN Mobile Money. No card needed.</p>
 <div class="row g-4 justify-content-center">
   {% for key, p in plans.items() %}
-  <div class="col-md-3">
-    <div class="card h-100 shadow-sm {% if key=='pro' %}border-primary{% endif %}">
+  {% if key != 'free' %}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm {% if key=='monthly' %}border-primary{% endif %}">
       <div class="card-body d-flex flex-column">
         <h5>{{ p.name }}</h5>
-        <div class="display-6 fw-bold">${{ p.price }}<span class="fs-6 text-muted">/mo</span></div>
+        <div class="display-6 fw-bold">${{ p.price }}<span class="fs-6 text-muted"> USD</span></div>
+        <p class="small text-muted mb-2">{{ p.days }} days access</p>
         <ul class="list-unstyled my-3 small">
           <li><i class="bi bi-check2 text-success"></i> {{ p.posts }} posts/week</li>
           <li><i class="bi bi-check2 text-success"></i> {{ p.brands }} brand(s)</li>
@@ -17,22 +20,31 @@
           <li><i class="bi bi-check2 text-success"></i> CSV export</li>
         </ul>
         <div class="mt-auto">
-          {% if key == 'free' %}
-            <a href="{{ url_for('signup') }}" class="btn btn-outline-secondary w-100">Start free</a>
+          {% if user %}
+          <form method="POST" action="{{ url_for('billing_checkout') }}">
+            <input type="hidden" name="plan" value="{{ key }}">
+            <button class="btn btn-primary w-100">Choose {{ p.name }}</button>
+          </form>
           {% else %}
-            <form method="POST" action="{{ url_for('billing_checkout') }}">
-              <input type="hidden" name="plan" value="{{ key }}">
-              <button class="btn btn-primary w-100">Choose {{ p.name }}</button>
-            </form>
-            <p class="small text-muted text-center mt-2 mb-0">Cancel anytime · No long contract</p>
+          <a href="{{ url_for('signup') }}" class="btn btn-primary w-100">Sign up to buy</a>
           {% endif %}
         </div>
       </div>
     </div>
   </div>
+  {% endif %}
   {% endfor %}
 </div>
+
+<div class="card bg-light border-0 mt-4">
+  <div class="card-body p-4 text-center">
+    <h5>Free tier — $0</h5>
+    <p class="mb-2">{{ plans.free.posts }} posts/week, {{ plans.free.brands }} brand. Try PostPilot risk-free.</p>
+    <a href="{{ url_for('signup') }}" class="btn btn-outline-secondary">Start free</a>
+  </div>
+</div>
+
 <p class="text-center text-muted small mt-4">
-  <i class="bi bi-shield-lock"></i> Secure checkout by Stripe · Cancel anytime · No long contract
+  <i class="bi bi-shield-lock"></i> Pay via Airtel Money ({{ config.AIRTEL_NUMBER }}) or MTN MoMo ({{ config.MTN_NUMBER }}) · Verified within 24 hours · Cancel anytime
 </p>
 {% endblock %}

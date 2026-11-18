@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Admin — PostPilot{% endblock %}
+{% block content %}
+<h2 class="mb-3"><i class="bi bi-shield-lock"></i> Admin dashboard</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card shadow-sm text-center p-3"><div class="h3 mb-0">{{ stats.users }}</div><div class="small text-muted">Users</div></div></div>
+  <div class="col-md-3"><div class="card shadow-sm text-center p-3"><div class="h3 mb-0">{{ stats.brands }}</div><div class="small text-muted">Brands</div></div></div>
+  <div class="col-md-3"><div class="card shadow-sm text-center p-3"><div class="h3 mb-0">{{ stats.posts }}</div><div class="small text-muted">Posts generated</div></div></div>
+  <div class="col-md-3"><div class="card shadow-sm text-center p-3"><div class="h3 mb-0">{{ pending_count if pending_count is defined else 0 }}</div><div class="small text-muted">Pending payments</div></div></div>
+</div>
+
+<div class="mb-3">
+  <a href="{{ url_for('admin_payments') }}" class="btn btn-warning"><i class="bi bi-credit-card"></i> Manage payments</a>
+  <a href="{{ url_for('admin_payments', status='all') }}" class="btn btn-outline-secondary">All payments</a>
+</div>
+
+<h4>Plan distribution</h4>
+<ul class="list-inline mb-4">
+  {% for plan, n in stats.plan_counts.items() %}
+  <li class="list-inline-item me-3"><span class="badge bg-secondary">{{ plan }}</span> {{ n }}</li>
+  {% endfor %}
+</ul>
+
+<h4>Platform breakdown</h4>
+<ul class="list-inline mb-4">
+  {% for plat, n in stats.platforms.items() %}
+  <li class="list-inline-item me-3">{{ plat|capitalize }}: {{ n }}</li>
+  {% endfor %}
+</ul>
+
+<h4>Users</h4>
+<div class="table-responsive">
+<table class="table table-sm table-striped align-middle">
+  <thead><tr><th>ID</th><th>Email</th><th>Plan</th><th>Expires</th><th>Brands</th><th>Posts</th><th>Admin</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for u in users %}
+  <tr>
+    <td>{{ u.id }}</td>
+    <td>{{ u.email }}</td>
+    <td>
+      <form method="POST" action="{{ url_for('admin_set_plan', uid=u.id) }}" class="d-inline">
+        <select name="plan" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for key in plans %}<option value="{{ key }}" {% if key==u.plan %}selected{% endif %}>{{ key }}</option>{% endfor %}
+        </select>
+      </form>
+    </td>
+    <td class="small">{{ u.plan_expires_at or '—' }}</td>
+    <td>{{ u.brand_count }}</td>
+    <td>{{ u.post_count }}</td>
+    <td>
+      <form method="POST" action="{{ url_for('admin_set_admin', uid=u.id) }}" class="d-inline">
+        <input type="hidden" name="is_admin" value="{{ '0' if u.is_admin else '1' }}">
+        <button class="btn btn-sm {% if u.is_admin %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+          {% if u.is_admin %}Yes{% else %}No{% endif %}
+        </button>
+      </form>
+    </td>
+    <td>
+      {% if u.id != user.id %}
+      <form method="POST" action="{{ url_for('admin_delete_user', uid=u.id) }}" onsubmit="return confirm('Delete user and all data?')" class="d-inline">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Pay — PostPilot{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h2 class="mb-2">Complete your payment</h2>
+    <p class="text-muted">Plan: <strong>{{ planinfo.name }}</strong> · ${{ planinfo.price }} USD · {{ planinfo.days }} days · {{ planinfo.posts }} posts/week</p>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5>How to pay (Mobile Money)</h5>
+        <p class="mb-2">Send <strong>${{ planinfo.price }} USD</strong> (equivalent in UGX) to either number below, then submit the transaction reference.</p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="border rounded p-3 text-center">
+              <div class="fw-bold text-danger">Airtel Money</div>
+              <div class="fs-5">{{ config.AIRTEL_NUMBER }}</div>
+              <small class="text-muted">Account name: PostPilot</small>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="border rounded p-3 text-center">
+              <div class="fw-bold text-warning">MTN MoMo</div>
+              <div class="fs-5">{{ config.MTN_NUMBER }}</div>
+              <small class="text-muted">Account name: PostPilot</small>
+            </div>
+          </div>
+        </div>
+        <ol class="mt-3 small">
+          <li>Open your Airtel Money or MTN MoMo app.</li>
+          <li>Send the amount to the number above.</li>
+          <li>Copy the transaction reference / code you receive.</li>
+          <li>Fill the form below. We verify and activate your plan within 24 hours.</li>
+        </ol>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('billing_submit') }}" class="card shadow-sm p-4">
+      <input type="hidden" name="plan" value="{{ plan }}">
+      <div class="mb-3">
+        <label class="form-label">Payment method used</label>
+        <div class="d-flex gap-3">
+          <div class="form-check"><input class="form-check-input" type="radio" name="method" value="airtel" id="m_airtel" required><label class="form-check-label" for="m_airtel">Airtel Money</label></div>
+          <div class="form-check"><input class="form-check-input" type="radio" name="method" value="mtn" id="m_mtn"><label class="form-check-label" for="m_mtn">MTN MoMo</label></div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Your phone number (sender)</label>
+        <input name="phone" class="form-control" placeholder="+256..." required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Transaction reference / code *</label>
+        <input name="txn_ref" class="form-control" placeholder="e.g. PP240101ABC" required>
+        <div class="form-text">The code from your payment confirmation SMS.</div>
+      </div>
+      <button class="btn btn-primary btn-lg w-100">Submit payment for verification</button>
+    </form>
+
+    <p class="small text-muted mt-3 text-center">
+      Need help? Reply to your confirmation email. Payments are verified manually within 24 hours.
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -7,7 +7,7 @@ or used by you to run clients' accounts ($200–$500/mo each).
 ## Why this can earn $50/day
 
 - $50/day ≈ $1,500/mo. At $29/mo you need ~52 paying customers (or 8–15 agency clients).
-- Free tier (5 posts/week) drives signups and SEO; paid tiers unlock volume.
+- Free tier (5 posts/week) drives signups and SEO; paid plans $2/$5/$10 via Airtel Money or MTN MoMo.
 - B2B buyers churn less and pay more than consumers.
 - Fastest cash: offer a "done-for-you" service using this tool to local businesses while the SaaS ramps.
 

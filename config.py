@@ -5,6 +5,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 DB_PATH = os.path.join(DATA_DIR, "agency.db")
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-in-production-please")
+ADMIN_EMAILS = [e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
 
 # LLM providers (tried in order; first one with a key wins)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
@@ -31,10 +32,15 @@ STRIPE_PRICE_AGENCY = os.environ.get("STRIPE_PRICE_AGENCY", "")
 FREE_POSTS_PER_WEEK = 5
 FREE_BRANDS = 1
 
-# Pricing (display only; actual billing via Stripe)
+# Mobile money payment details (Uganda)
+AIRTEL_NUMBER = os.environ.get("AIRTEL_NUMBER", "+256732474626")
+MTN_NUMBER = os.environ.get("MTN_NUMBER", "+256769595165")
+CURRENCY = "USD"
+
+# Pricing plans (mobile money): 14 days $2, 1 month $5, 2 months $10
 PLANS = {
-    "free": {"name": "Free", "price": 0, "posts": FREE_POSTS_PER_WEEK, "brands": FREE_BRANDS},
-    "starter": {"name": "Starter", "price": 29, "posts": 30, "brands": 1},
-    "pro": {"name": "Pro", "price": 79, "posts": 100, "brands": 5},
-    "agency": {"name": "Agency", "price": 199, "posts": 500, "brands": 25},
+    "free": {"name": "Free", "price": 0, "days": 0, "posts": FREE_POSTS_PER_WEEK, "brands": FREE_BRANDS},
+    "trial14": {"name": "14 Days", "price": 2, "days": 14, "posts": 30, "brands": 1},
+    "monthly": {"name": "1 Month", "price": 5, "days": 30, "posts": 60, "brands": 1},
+    "bimonthly": {"name": "2 Months", "price": 10, "days": 60, "posts": 120, "brands": 2},
 }

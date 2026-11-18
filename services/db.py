@@ -10,8 +10,27 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     plan TEXT NOT NULL DEFAULT 'free',
+    plan_expires_at TEXT,
     stripe_customer_id TEXT,
+    is_admin INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    plan TEXT NOT NULL,
+    amount REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    method TEXT NOT NULL,        -- airtel | mtn
+    phone TEXT,                  -- sender phone
+    txn_ref TEXT NOT NULL,       -- transaction reference / code
+    status TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | rejected
+    admin_note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    verified_at TIMESTAMP,
+    verified_by INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS brands (
@@ -66,6 +85,12 @@ def get_conn():
 def init_db():
     conn = get_conn()
     conn.executescript(SCHEMA)
+    # migrate: add is_admin column if missing
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
+    if "is_admin" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+    if "plan_expires_at" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN plan_expires_at TEXT")
     conn.commit()
     conn.close()
 
@@ -104,10 +129,32 @@ def get_user_by_id(uid):
     return row_to_dict(row)
 
 
-def update_user_plan(uid, plan, stripe_customer_id=None):
+def ensure_plan_active(user):
+    """Downgrade to free if the paid plan has expired."""
+    if not user or user.get("plan") == "free":
+        return user
+    expires = user.get("plan_expires_at")
+    if not expires:
+        return user
+    import datetime
+    try:
+        if datetime.date.fromisoformat(expires) < datetime.date.today():
+            update_user_plan(user["id"], "free")
+            user["plan"] = "free"
+            user["plan_expires_at"] = None
+    except ValueError:
+        pass
+    return user
+
+
+def update_user_plan(uid, plan, stripe_customer_id=None, plan_expires_at=None):
     conn = get_conn()
-    if stripe_customer_id:
+    if stripe_customer_id and plan_expires_at:
+        conn.execute("UPDATE users SET plan=?, stripe_customer_id=?, plan_expires_at=? WHERE id=?", (plan, stripe_customer_id, plan_expires_at, uid))
+    elif stripe_customer_id:
         conn.execute("UPDATE users SET plan=?, stripe_customer_id=? WHERE id=?", (plan, stripe_customer_id, uid))
+    elif plan_expires_at is not None:
+        conn.execute("UPDATE users SET plan=?, plan_expires_at=? WHERE id=?", (plan, plan_expires_at, uid))
     else:
         conn.execute("UPDATE users SET plan=? WHERE id=?", (plan, uid))
     conn.commit()
@@ -229,3 +276,141 @@ def increment_usage(user_id, n):
     )
     conn.commit()
     conn.close()
+
+
+# ---------- admin ----------
+def get_all_users():
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT u.*, (SELECT COUNT(*) FROM brands b WHERE b.user_id=u.id) AS brand_count,
+                  (SELECT COUNT(*) FROM posts p WHERE p.user_id=u.id) AS post_count
+           FROM users u ORDER BY u.created_at DESC"""
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def count_users():
+    conn = get_conn()
+    n = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    conn.close()
+    return n
+
+
+def count_posts():
+    conn = get_conn()
+    n = conn.execute("SELECT COUNT(*) FROM posts").fetchone()[0]
+    conn.close()
+    return n
+
+
+def count_brands_total():
+    conn = get_conn()
+    n = conn.execute("SELECT COUNT(*) FROM brands").fetchone()[0]
+    conn.close()
+    return n
+
+
+def set_user_admin(uid, is_admin):
+    conn = get_conn()
+    conn.execute("UPDATE users SET is_admin=? WHERE id=?", (1 if is_admin else 0, uid))
+    conn.commit()
+    conn.close()
+
+
+def set_user_plan_admin(uid, plan):
+    conn = get_conn()
+    conn.execute("UPDATE users SET plan=? WHERE id=?", (plan, uid))
+    conn.commit()
+    conn.close()
+
+
+def delete_user(uid):
+    conn = get_conn()
+    conn.execute("DELETE FROM usage WHERE user_id=?", (uid,))
+    conn.execute("DELETE FROM posts WHERE user_id=?", (uid,))
+    conn.execute("DELETE FROM brands WHERE user_id=?", (uid,))
+    conn.execute("DELETE FROM users WHERE id=?", (uid,))
+    conn.commit()
+    conn.close()
+
+
+def get_platform_stats():
+    conn = get_conn()
+    rows = conn.execute("SELECT platform, COUNT(*) AS n FROM posts GROUP BY platform").fetchall()
+    conn.close()
+    return {r["platform"]: r["n"] for r in rows}
+
+
+# ---------- payments (mobile money) ----------
+def create_payment(user_id, plan, amount, method, phone, txn_ref):
+    conn = get_conn()
+    cur = conn.execute(
+        """INSERT INTO payments (user_id, plan, amount, method, phone, txn_ref)
+           VALUES (?,?,?,?,?,?)""",
+        (user_id, plan, amount, method, phone, txn_ref),
+    )
+    conn.commit()
+    pid = cur.lastrowid
+    conn.close()
+    return pid
+
+
+def get_payments(status=None, limit=200):
+    conn = get_conn()
+    if status:
+        rows = conn.execute(
+            """SELECT p.*, u.email FROM payments p JOIN users u ON u.id=p.user_id
+               WHERE p.status=? ORDER BY p.created_at DESC LIMIT ?""", (status, limit)).fetchall()
+    else:
+        rows = conn.execute(
+            """SELECT p.*, u.email FROM payments p JOIN users u ON u.id=p.user_id
+               ORDER BY p.created_at DESC LIMIT ?""", (limit,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_payment(pid):
+    conn = get_conn()
+    row = conn.execute(
+        """SELECT p.*, u.email FROM payments p JOIN users u ON u.id=p.user_id WHERE p.id=?""", (pid,)).fetchone()
+    conn.close()
+    return row_to_dict(row)
+
+
+def approve_payment(pid, admin_uid, note=""):
+    pay = get_payment(pid)
+    if not pay or pay["status"] != "pending":
+        return False
+    import datetime
+    plan = pay["plan"]
+    from config import PLANS
+    days = PLANS[plan]["days"]
+    expires = (datetime.date.today() + datetime.timedelta(days=days)).isoformat() if days else None
+    db_update = None
+    conn = get_conn()
+    conn.execute(
+        "UPDATE payments SET status='approved', admin_note=?, verified_at=CURRENT_TIMESTAMP, verified_by=? WHERE id=?",
+        (note, admin_uid, pid),
+    )
+    conn.commit()
+    conn.close()
+    update_user_plan(pay["user_id"], plan, plan_expires_at=expires)
+    return True
+
+
+def reject_payment(pid, admin_uid, note=""):
+    conn = get_conn()
+    conn.execute(
+        "UPDATE payments SET status='rejected', admin_note=?, verified_at=CURRENT_TIMESTAMP, verified_by=? WHERE id=?",
+        (note, admin_uid, pid),
+    )
+    conn.commit()
+    conn.close()
+
+
+def count_pending_payments():
+    conn = get_conn()
+    n = conn.execute("SELECT COUNT(*) FROM payments WHERE status='pending'").fetchone()[0]
+    conn.close()
+    return n

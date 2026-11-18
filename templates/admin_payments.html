@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Payments — Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2><i class="bi bi-credit-card"></i> Payments</h2>
+  <div>
+    <a href="{{ url_for('admin_payments', status='pending') }}" class="btn btn-sm {% if status=='pending' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Pending ({{ pending_count }})</a>
+    <a href="{{ url_for('admin_payments', status='approved') }}" class="btn btn-sm {% if status=='approved' %}btn-success{% else %}btn-outline-secondary{% endif %}">Approved</a>
+    <a href="{{ url_for('admin_payments', status='rejected') }}" class="btn btn-sm {% if status=='rejected' %}btn-danger{% else %}btn-outline-secondary{% endif %}">Rejected</a>
+    <a href="{{ url_for('admin_payments', status='all') }}" class="btn btn-sm {% if status=='all' %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
+  </div>
+</div>
+
+<div class="table-responsive">
+<table class="table table-sm table-striped align-middle">
+  <thead><tr><th>ID</th><th>User</th><th>Plan</th><th>Amount</th><th>Method</th><th>Phone</th><th>Txn ref</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for p in payments %}
+  <tr>
+    <td>{{ p.id }}</td>
+    <td>{{ p.email }}</td>
+    <td>{{ p.plan }}</td>
+    <td>${{ '%.2f'|format(p.amount) }}</td>
+    <td>{{ p.method }}</td>
+    <td class="small">{{ p.phone or '—' }}</td>
+    <td class="small"><code>{{ p.txn_ref }}</code></td>
+    <td><span class="badge bg-{{ 'warning' if p.status=='pending' else ('success' if p.status=='approved' else 'danger') }}">{{ p.status }}</span></td>
+    <td class="small">{{ p.created_at }}</td>
+    <td>
+      {% if p.status == 'pending' %}
+      <form method="POST" action="{{ url_for('admin_approve_payment', pid=p.id) }}" class="d-inline">
+        <input type="text" name="note" placeholder="note" class="form-control form-control-sm d-inline" style="width:100px">
+        <button class="btn btn-sm btn-success">Approve</button>
+      </form>
+      <form method="POST" action="{{ url_for('admin_reject_payment', pid=p.id) }}" class="d-inline">
+        <button class="btn btn-sm btn-outline-danger">Reject</button>
+      </form>
+      {% else %}
+      <span class="small text-muted">{{ p.admin_note or '' }}</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="10" class="text-center text-muted">No payments.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">← Back to admin</a>
+{% endblock %}

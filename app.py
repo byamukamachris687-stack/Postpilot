@@ -31,7 +31,10 @@ def current_user():
     uid = session.get("user_id")
     if not uid:
         return None
-    return db.get_user_by_id(uid)
+    u = db.get_user_by_id(uid)
+    if u:
+        u = db.ensure_plan_active(u)
+    return u
 
 
 def login_required(f):
@@ -41,6 +44,26 @@ def login_required(f):
         if not session.get("user_id"):
             flash("Please log in to continue.", "warning")
             return redirect(url_for("login", next=request.path))
+        return f(*a, **kw)
+    return wrapper
+
+
+def is_admin(user):
+    if not user:
+        return False
+    if user.get("is_admin"):
+        return True
+    return user.get("email", "").lower() in config.ADMIN_EMAILS
+
+
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def wrapper(*a, **kw):
+        u = current_user()
+        if not u or not is_admin(u):
+            flash("Admin access required.", "danger")
+            return redirect(url_for("index"))
         return f(*a, **kw)
     return wrapper
 
@@ -58,7 +81,7 @@ def posts_remaining(user):
 
 @app.context_processor
 def inject_globals():
-    return {"user": current_user(), "plans": config.PLANS}
+    return {"user": current_user(), "plans": config.PLANS, "config": config}
 
 
 # ---------- public pages ----------
@@ -323,9 +346,9 @@ def billing_checkout():
     if plan not in config.PLANS or plan == "free":
         flash("Invalid plan.", "danger")
         return redirect(url_for("pricing"))
+    # Stripe path (optional, if configured)
     user = current_user()
     price_id = PRICE_IDS.get(plan, "")
-    # Prefer real Stripe Checkout if configured
     if config.STRIPE_SECRET_KEY and price_id:
         try:
             from services.stripe import create_checkout_session
@@ -339,14 +362,41 @@ def billing_checkout():
         except Exception as e:
             flash(f"Checkout error: {e}", "danger")
             return redirect(url_for("pricing"))
-    # Fallback to legacy Payment Link
-    link = config.STRIPE_PAYMENT_LINK
-    if link:
-        sep = "&" if "?" in link else "?"
-        url = f"{link}{sep}client_reference_id={user['id']}&prefilled_email={user['email']}"
-        return redirect(url)
-    flash("Payments not configured yet. Set STRIPE_SECRET_KEY + STRIPE_PRICE_* (or STRIPE_PAYMENT_LINK) in env.", "warning")
-    return redirect(url_for("pricing"))
+    # Mobile money path (primary)
+    return redirect(url_for("billing_pay", plan=plan))
+
+
+@app.route("/billing/pay")
+@login_required
+def billing_pay():
+    plan = request.args.get("plan")
+    if plan not in config.PLANS or plan == "free":
+        flash("Invalid plan.", "danger")
+        return redirect(url_for("pricing"))
+    return render_template("pay.html", plan=plan, planinfo=config.PLANS[plan])
+
+
+@app.route("/billing/submit", methods=["POST"])
+@login_required
+def billing_submit():
+    user = current_user()
+    plan = request.form.get("plan")
+    if plan not in config.PLANS or plan == "free":
+        flash("Invalid plan.", "danger")
+        return redirect(url_for("pricing"))
+    method = request.form.get("method")
+    if method not in ("airtel", "mtn"):
+        flash("Select a payment method.", "danger")
+        return redirect(url_for("billing_pay", plan=plan))
+    phone = request.form.get("phone", "").strip()
+    txn_ref = request.form.get("txn_ref", "").strip()
+    if not txn_ref:
+        flash("Transaction reference is required.", "danger")
+        return redirect(url_for("billing_pay", plan=plan))
+    amount = config.PLANS[plan]["price"]
+    pid = db.create_payment(user["id"], plan, amount, method, phone, txn_ref)
+    flash("Payment submitted! We'll verify and activate your plan within 24 hours.", "success")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/billing/webhook", methods=["POST"])
@@ -411,6 +461,95 @@ def manual_upgrade():
         db.update_user_plan(current_user()["id"], plan)
         flash(f"Upgraded to {config.PLANS[plan]['name']} (demo).", "success")
     return redirect(url_for("dashboard"))
+
+
+# ---------- admin ----------
+@app.route("/admin")
+@login_required
+@admin_required
+def admin():
+    users = db.get_all_users()
+    stats = {
+        "users": db.count_users(),
+        "brands": db.count_brands_total(),
+        "posts": db.count_posts(),
+        "platforms": db.get_platform_stats(),
+    }
+    # plan distribution
+    plan_counts = {}
+    for u in users:
+        plan_counts[u["plan"]] = plan_counts.get(u["plan"], 0) + 1
+    stats["plan_counts"] = plan_counts
+    return render_template("admin.html", users=users, stats=stats, pending_count=db.count_pending_payments())
+
+
+@app.route("/admin/users/<int:uid>/plan", methods=["POST"])
+@login_required
+@admin_required
+def admin_set_plan(uid):
+    plan = request.form.get("plan")
+    if plan in config.PLANS:
+        db.set_user_plan_admin(uid, plan)
+        flash(f"User {uid} plan set to {plan}.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/users/<int:uid>/admin", methods=["POST"])
+@login_required
+@admin_required
+def admin_set_admin(uid):
+    val = request.form.get("is_admin") == "1"
+    db.set_user_admin(uid, val)
+    flash(f"User {uid} admin flag set to {val}.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/users/<int:uid>/delete", methods=["POST"])
+@login_required
+@admin_required
+def admin_delete_user(uid):
+    if uid == current_user()["id"]:
+        flash("You cannot delete your own account.", "danger")
+        return redirect(url_for("admin"))
+    db.delete_user(uid)
+    flash(f"User {uid} deleted.", "warning")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/payments")
+@login_required
+@admin_required
+def admin_payments():
+    status = request.args.get("status", "pending")
+    if status == "all":
+        payments = db.get_payments(None)
+    else:
+        payments = db.get_payments(status)
+    return render_template("admin_payments.html", payments=payments, status=status,
+                           pending_count=db.count_pending_payments())
+
+
+@app.route("/admin/payments/<int:pid>/approve", methods=["POST"])
+@login_required
+@admin_required
+def admin_approve_payment(pid):
+    note = request.form.get("note", "").strip()
+    ok = db.approve_payment(pid, current_user()["id"], note)
+    if ok:
+        flash(f"Payment {pid} approved. Plan activated.", "success")
+    else:
+        flash(f"Payment {pid} not found or already processed.", "warning")
+    return redirect(url_for("admin_payments"))
+
+
+@app.route("/admin/payments/<int:pid>/reject", methods=["POST"])
+@login_required
+@admin_required
+def admin_reject_payment(pid):
+    note = request.form.get("note", "").strip()
+    db.reject_payment(pid, current_user()["id"], note)
+    flash(f"Payment {pid} rejected.", "info")
+    return redirect(url_for("admin_payments"))
 
 
 @app.route("/settings")

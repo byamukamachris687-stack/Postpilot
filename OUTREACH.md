@@ -3,7 +3,9 @@
 I picked **restaurants** as your starting niche. Why: every city has hundreds of them, owners are busy, they already know they "should" post on social but don't, and $250–$500/mo is a no-brainer next to their ad spend. Easy to find on Google Maps + Instagram.
 
 ## The offer
-"$250/mo — I'll create and schedule 4 posts/week across your Facebook, Instagram & TikTok. On-brand, with photos prompts. Cancel anytime. First week free as a sample."
+"Done-for-you: $250/mo — I'll create and schedule 4 posts/week across your Facebook, Instagram & TikTok. On-brand. Cancel anytime. First week free as a sample."
+
+"Or DIY: $2 (14 days) / $5 (1 month) / $10 (2 months) — generate your own content with PostPilot. Pay via Airtel Money or MTN MoMo."
 
 ## Where to find prospects (free)
 - Google Maps: search "restaurant" in your city → list of 50 with phone/website
